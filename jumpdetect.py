@@ -8,17 +8,20 @@ JUMP_THRESHOLD = 18
 STAND_THRESHOLD = 2
 GRAVITY = 9.8
 STAND_TIME = 0.05
+JUMP_RESET_TIME = 0.8
 
 startedStanding = None
 stood = False
+jumped = -10
 
 def process(t,x,y,z):
-    global stood, startedStanding
+    global stood, startedStanding, jumped
     a = math.sqrt(x*x+y*y+z*z)
     # print(t,a)
-    if a >= JUMP_THRESHOLD and stood:
+    if a >= JUMP_THRESHOLD and (stood or jumped+JUMP_RESET_TIME<t):
         print("jump",a)
         keyboard.press_and_release("space")
+        jumped = t
         stood = False
     elif not stood:
         if abs(a-GRAVITY) <= STAND_THRESHOLD:
