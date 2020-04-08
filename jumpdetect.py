@@ -5,30 +5,30 @@ import time
 import struct
 
 JUMP_THRESHOLD = 18
-STAND_THREASHOLD = 4
-STAND_TIME = 0.2
+STAND_THRESHOLD = 2
+GRAVITY = 9.8
+STAND_TIME = 0.05
 
-ready = False
-lastJump = -RELEASE_TIME
-jumpStarted = None
-MIN_JUMP_TIME = 0.1
+startedStanding = None
+stood = False
 
 def process(t,x,y,z):
-    global lastJump, jumpStarted
+    global stood, startedStanding
     a = math.sqrt(x*x+y*y+z*z)
-    if a > JUMP_THRESHOLD and ready:
-        if jumpStarted is not None and jumpStarted + MIN_JUMP_TIME <= t:
-            print("jump",a)
-            keyboard.press_and_release("space")
-            lastJump = t
-            jumpStarted = None
-        elif jumpStarted is None:
-            print("start")
-            jumpStarted = t
-    else:
-        if jumpStarted:
-            print("reset",t-jumpStarted)
-        jumpStarted = None
+    # print(t,a)
+    if a >= JUMP_THRESHOLD and stood:
+        print("jump",a)
+        keyboard.press_and_release("space")
+        stood = False
+    elif not stood:
+        if abs(a-GRAVITY) <= STAND_THRESHOLD:
+            if startedStanding is None:
+                startedStanding = t
+            elif t >= startedStanding + STAND_TIME:
+                stood = True
+                print("stood",a,t-startedStanding)
+        else:
+            startedStanding = None
 """    
     
     if a > JUMP_THRESHOLD and ready and lastJump + RELEASE_TIME <= t:
@@ -42,6 +42,8 @@ def process(t,x,y,z):
         ready = True
     #print(ts,x,y,z)
 """
+
+init = False
 pos = 0    
     
 with serial.Serial('COM28', 57600, timeout=5) as ser:
@@ -56,7 +58,12 @@ with serial.Serial('COM28', 57600, timeout=5) as ser:
         elif b == b's' and pos == 3:
             data = ser.read(8+4*3)
             t,x,y,z=struct.unpack(">qfff",data)
+            if not init:
+                print("First data point",t,x,y,z)
+                init = True
             process(t/1000000000., x,y,z)
+                
             pos = 0
         else:
             pos = 0
+            
